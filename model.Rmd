@@ -1,5 +1,5 @@
 ---
-title: "Homework 7 Code"
+title: "Election Predction Linear Model"
 author: "Enzo Moraes Mescall"
 date: "`r Sys.Date()`"
 output: pdf_document
@@ -62,6 +62,29 @@ pred_model_df = baseline  %>%
 
 sum(pred_model_df$accurate)/nrow(pred_model_df)
 ```
+
+```{r}
+library(rvest) #Web-Scraping
+library(tidyverse) #Data Cleaning and Plotting
+library(httr) #Used to Download Excel File from Web
+library(readxl) #Read in Excel Files
+
+electoral_votes <- read_html('https://en.wikipedia.org/wiki/United_States_Electoral_College') %>% 
+  html_nodes("table") %>% 
+  .[[5]] %>% 
+  html_table(fill = T) %>% 
+  dplyr::select(2, 4, 36) %>% 
+  filter(!Electionyear %in% c('Total', 'Electionyear', "State")) %>% 
+  rename(state = 1, electoral_votes_1792 = 2, electoral_votes_2020 = 3) %>% 
+  mutate(across(starts_with('electoral_votes'), parse_number))
+
+
+electoral_model = pred_model_df %>% inner_join(electoral_votes) %>%
+  filter(pred > 0)
+
+sum(electoral_model$electoral_votes_2020)
+```
+
 
 
 

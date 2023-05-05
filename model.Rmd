@@ -1,0 +1,70 @@
+---
+title: "Homework 7 Code"
+author: "Enzo Moraes Mescall"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+```
+
+```{r}
+sentiment_data = read.csv("baseline_data.csv")
+state_data = read.csv("Popular vote backend - Sheet1.csv") %>%
+  dplyr::select(state, dem_this_margin)
+```
+
+```{r}
+swing_states = c("Arizona", "Florida", "Georgia", "Iowa", "Maine", "Michigan",
+                 "Minnesota", "Nebraska", "Nevada", "New Hampshire", "North Carolina",
+                 "Ohio", "Pennsylvania", "Texas", "Wisconsin", "Florida", "Michigan", "Ohio", "Pennsylvania")
+```
+
+
+```{r}
+# creating dataset and predictor
+baseline = sentiment_data %>%
+  inner_join(state_data) %>%
+  mutate("dem_this_margin" = as.numeric(as.numeric(sub("%","",dem_this_margin))/100)) %>%
+  mutate(biden_pos_pct = biden.positive/(biden.positive+biden.neutral+biden.negative))
+
+test = subset(baseline, state %in% swing_states)
+train = subset(baseline, !(state %in% swing_states))
+```
+```{r}
+model_df = train %>%
+  dplyr::select(-state)
+model = lm(dem_this_margin~.*biden.positive + .*trump.positive, data = model_df)
+
+library(MASS)
+
+step.model <- stepAIC(model, direction = "forward", 
+                      trace = FALSE, k = log(50))
+```
+
+```{r}
+
+
+test_model_df = test  %>%
+  modelr::add_predictions(model) %>%
+  mutate(accurate = (dem_this_margin*pred > 0))
+
+sum(test_model_df$accurate)/nrow(test_model_df)
+
+pred_model_df = baseline  %>%
+  modelr::add_predictions(model) %>%
+  mutate(accurate = (dem_this_margin*pred > 0))
+
+sum(pred_model_df$accurate)/nrow(pred_model_df)
+```
+
+
+
+
+
+
